@@ -18,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class SubscriptionService {
@@ -104,6 +106,25 @@ public class SubscriptionService {
 
         return plan;
     }
+    public List<Subscription> getExpiredSubscriptions() {
+        return subscriptionRepository.findAllExpiredSubscriptions();
+    }
+
+    public List<Subscription> getSubscriptionsEndingInFourDays() {
+        LocalDate fourDaysAhead = LocalDate.now().plusDays(4);
+        return subscriptionRepository.findAllSubscriptionsEndingInFourDays(fourDaysAhead);
+    }
+    public boolean markCycleReturned(Long subscriptionId) {
+        Optional<Subscription> subscriptionOptional = subscriptionRepository.findById(Math.toIntExact(subscriptionId));
+        if (subscriptionOptional.isPresent()) {
+            Subscription subscription = subscriptionOptional.get();
+            subscription.setReturnStatus(String.valueOf(true)); // Assuming you have a field in Subscription entity to track this
+            subscriptionRepository.save(subscription);
+            return true;
+        }
+        return false;
+    }
+
 
 
 }

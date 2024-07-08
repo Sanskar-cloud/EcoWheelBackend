@@ -19,6 +19,7 @@ public class Subscription {
 
     private LocalDate startDate;
     private LocalDate endDate;
+    private String returnStatus;
     @OneToOne
 
     private Cycle allocatedCycle;
