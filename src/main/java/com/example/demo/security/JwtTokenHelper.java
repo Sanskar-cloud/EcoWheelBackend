@@ -46,6 +46,12 @@ public class JwtTokenHelper {
         final Date expiration = getExpirationDateFromToken(token);
         return expiration.before(new Date());
     }
+    public String generateAdminToken(String adminUsername) {
+        Map<String, Object> claims = new HashMap<>();
+        // You can add specific claims for admin if needed
+        return doGenerateToken(claims, adminUsername);
+    }
+
 
     //generate token for user
     public String generateToken(UserDetails userDetails) {

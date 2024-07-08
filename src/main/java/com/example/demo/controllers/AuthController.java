@@ -7,6 +7,8 @@ import com.example.demo.payloads.*;
 import com.example.demo.repository.UserRepo;
 import com.example.demo.security.CustomUserDetailService;
 import com.example.demo.security.JwtTokenHelper;
+import com.example.demo.services.EmailService;
+import com.example.demo.services.OtpService;
 import com.example.demo.services.UserService;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
@@ -35,50 +37,99 @@ public class AuthController {
     private UserDetailsService userDetailsService;
 
     @Autowired
+    EmailService emailService;
+    @Autowired
     private AuthenticationManager authenticationManager;
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private OtpService otpService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> createToken(@RequestBody LoginRequest request) throws Exception {
-        this.authenticate(request.getUsername(), request.getPassword());
-        UserDetails userDetails = this.userDetailsService.loadUserByUsername(request.getUsername());
-        String token = this.jwtTokenHelper.generateToken(userDetails);
+    public ResponseEntity<?> createToken(@RequestBody LoginRequest request) throws Exception {
+        if (isAdminCredentials(request.getUsername(), request.getPassword())) {
 
-        LoginResponse response = new LoginResponse();
-        response.setToken(token);
-        response.setUser(this.mapper.map((User) userDetails, UserDto.class));
-        return new ResponseEntity<LoginResponse>(response, HttpStatus.OK);
+            System.out.println(request.getOtp()+"DEVIHO ERBIOV;HIBVOFVHFO IFBEGIOBVFVJFVBGB FBIJ GVNOFUBNFBEFGB FVBJG GF");
+            boolean isOtpValid = otpService.verifyOtp(request.getUsername(), String.valueOf(request.getOtp()));
+            System.out.println(request.getOtp()+"DEVIHO ERBIOV;HIBVOFVHFO IFBEGIOBVFVJFVBGB FBIJ GVNOFUBNFBEFGB FVBJG GF");
+
+            if(isOtpValid){
+                String token = jwtTokenHelper.generateAdminToken(request.getUsername());
+
+                LoginResponse response = new LoginResponse();
+                response.setToken(token);
+                response.setUser(new UserDto());
+                return ResponseEntity.ok(response);
+
+            }
+            else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid OTP");
+            }
+
+
+
+        } else {
+            boolean isOtpValid = otpService.verifyOtp(request.getUsername(), String.valueOf(request.getOtp()));
+            if(isOtpValid){
+                authenticate(request.getUsername(), request.getPassword());
+                UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+                String token = jwtTokenHelper.generateToken(userDetails);
+
+                LoginResponse response = new LoginResponse();
+                response.setToken(token);
+                response.setUser(mapper.map(userDetails, UserDto.class));
+                return ResponseEntity.ok(response);
+
+            }
+            else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid OTP");
+            }
+
+
+        }
+    }
+
+    private boolean isAdminCredentials(String username, String password) {
+        // Replace with your actual admin credentials logic
+        String adminUsername = "sanskarbhadani11@gmail.com";
+        String adminPassword = "Sanskar12345@#$@"; // Replace with your actual admin password
+
+        return adminUsername.equals(username) && adminPassword.equals(password);
     }
 
     private void authenticate(String username, String password) throws Exception {
-
         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(username,
                 password);
 
         try {
-
-            this.authenticationManager.authenticate(authenticationToken);
-
+            authenticationManager.authenticate(authenticationToken);
         } catch (BadCredentialsException e) {
-            System.out.println("Invalid Detials !!");
-            throw new ApiException("Invalid username or password !!");
+            throw new ApiException("Invalid username or password");
         }
-
     }
+
 
     // register new user api
 
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
         String email=registerRequest.getEmail();
-        if (customUserDetailService.loadUserByUsername(email) != null) {
-            throw new UserAlreadyExists("User with email " + email + " already exists");
-        }
+//        if (customUserDetailService.loadUserByUsername(email) != null) {
+//            throw new UserAlreadyExists("User with email " + email + " already exists");
+//        }
 
         UserDto registeredUser = this.userService.registerNewUser(registerRequest);
         return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
+    }
+    @PostMapping("/sendOtp")
+    public ResponseEntity<String> sendOtp(@RequestParam String email) {
+       String email2 = email.trim();
+
+        String otp = otpService.generateOtp(email2);
+        emailService.sendSimpleMessage(email2,"Your OTP ","OTP is "+otp);
+
+        return ResponseEntity.ok("OTP sent to " + email2+otp);
     }
 
     // get loggedin user data
@@ -91,6 +142,12 @@ public class AuthController {
     public ResponseEntity<UserDto> getUser(Principal principal) {
         User user = this.userRepo.findByEmail(principal.getName()).get();
         return new ResponseEntity<UserDto>(this.mapper.map(user, UserDto.class), HttpStatus.OK);
+    }
+    private boolean isValidEmailFormat(String email) {
+        // Implement your email validation logic here (e.g., regex check)
+        // Example regex for basic validation (not comprehensive)
+        String regex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+        return email.matches(regex);
     }
 
 }

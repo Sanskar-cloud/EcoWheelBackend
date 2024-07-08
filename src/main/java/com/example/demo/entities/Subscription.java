@@ -19,7 +19,8 @@ public class Subscription {
 
     private LocalDate startDate;
     private LocalDate endDate;
-    @OneToOne(mappedBy = "subscription")
+    @OneToOne
+
     private Cycle allocatedCycle;
     private String paymentLinkId;
     private SubscriptionStatus status;

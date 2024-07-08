@@ -4,10 +4,12 @@ import com.example.demo.entities.Cycle;
 import com.example.demo.entities.Subscription;
 import com.example.demo.entities.SubscriptionStatus;
 import com.example.demo.entities.User;
+import com.example.demo.payloads.EmailRequest;
 import com.example.demo.payloads.PaymentLinkResponse;
 import com.example.demo.payloads.PaymentRequest;
 import com.example.demo.repository.CycleRepo;
 import com.example.demo.repository.SubscriptionRepo;
+import com.example.demo.services.EmailService;
 import com.example.demo.services.SubscriptionService;
 import com.razorpay.RazorpayException;
 import org.json.JSONObject;
@@ -23,7 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/payments")
+@RequestMapping("/api/v1/payments")
 public class SubscriptionController {
 
     @Autowired
@@ -32,6 +34,8 @@ public class SubscriptionController {
     SubscriptionRepo subscriptionRepo;
     @Autowired
     CycleRepo cycleRepo;
+    @Autowired
+    EmailService emailService;
 
 
     @PostMapping("/create")
@@ -96,6 +100,13 @@ public class SubscriptionController {
         }
 
         private void deallocateCycle(Subscription subscription) {
+            String userEmail = subscription.getUser().getEmail();
+            String subject = "Subscription Expiration Notice";
+            String message = "Your subscription has expired. Please renew to continue using our service.";
+
+            // Send email notification
+            emailService.sendSimpleMessage(userEmail, subject, message);
+
             Cycle cycle = subscription.getAllocatedCycle();
             if (cycle != null) {
                 cycle.setIsAvailable(String.valueOf(true));
@@ -106,5 +117,16 @@ public class SubscriptionController {
             subscriptionRepo.save(subscription);
         }
     }
+    @PostMapping("/send")
+    public ResponseEntity<String> sendEmail(@RequestBody EmailRequest emailRequest) {
+        try {
+            emailService.sendSimpleMessage(emailRequest.getTo(),emailRequest.getSubject(),emailRequest.getBody());
+            return ResponseEntity.ok("Email sent successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error sending email: " + e.getMessage());
+        }
+    }
+
+
 
 }
