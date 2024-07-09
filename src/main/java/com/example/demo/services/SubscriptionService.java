@@ -107,7 +107,7 @@ public class SubscriptionService {
         return plan;
     }
     public List<Subscription> getExpiredSubscriptions() {
-        return subscriptionRepository.findAllExpiredSubscriptions();
+        return subscriptionRepository.findAllExpiredSubscriptions(SubscriptionStatus.EXPIRED);
     }
 
     public List<Subscription> getSubscriptionsEndingInFourDays() {

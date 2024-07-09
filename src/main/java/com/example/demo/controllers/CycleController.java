@@ -80,6 +80,7 @@ public class CycleController {
 
     }
 
+
     // delete post
     @DeleteMapping("/cycle/{cycleId}")
     public ApiResponse deletePost(@PathVariable Integer cycleId) {
